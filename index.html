@@ -16,16 +16,27 @@
 
         <div class="controls">
             <div class="input-group">
-                <label for="pageSize">Page Size:</label>
+                <label for="mode">Mode:</label>
+                <select id="mode" onchange="updateMode()">
+                    <option value="paging">Paging</option>
+                    <option value="segmentation">Segmentation</option>
+                </select>
+            </div>
+            <div class="input-group" id="pagingInputs">
+                <label for="pageSize">Page Size (KB):</label>
                 <input type="number" id="pageSize" value="4" min="1">
+            </div>
+            <div class="input-group" id="segmentationInputs" style="display: none;">
+                <label for="segments">Segment Sizes (KB, e.g., 5,3,2):</label>
+                <input type="text" id="segments" placeholder="e.g., 5,3,2">
             </div>
             <div class="input-group">
                 <label for="numFrames">Number of Frames:</label>
                 <input type="number" id="numFrames" value="8" min="1">
             </div>
             <div class="input-group">
-                <label for="pageRefs">Page References:</label>
-                <input type="text" id="pageRefs" placeholder="e.g., 1, 2, 3, 4">
+                <label for="pageRefs" id="refsLabel">Page References (e.g., 1,2,3):</label>
+                <input type="text" id="pageRefs" placeholder="e.g., 1,2,3">
             </div>
             <div class="button-group">
                 <button onclick="initializeMemory()"><i class="fas fa-sync-alt"></i> Initialize</button>
@@ -38,14 +49,31 @@
         <div id="memoryDisplay" class="memory-grid"></div>
         <p id="status">Status: Ready</p>
 
+        <div class="virtual-memory">
+            <h3 id="tableTitle">Page Table</h3>
+            <table id="memoryTable">
+                <thead id="tableHead">
+                    <tr>
+                        <th>Page</th>
+                        <th>Frame</th>
+                        <th>In Memory</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+
+            <h3>Disk Storage</h3>
+            <div id="diskDisplay" class="disk-grid"></div>
+        </div>
+
         <div class="history">
             <h3>Simulation History</h3>
             <table id="historyTable">
                 <thead>
                     <tr>
-                        <th>Page</th>
+                        <th>Reference</th>
                         <th>Action</th>
-                        <th>Page Faults</th>
+                        <th>Faults</th>
                     </tr>
                 </thead>
                 <tbody id="historyBody"></tbody>
