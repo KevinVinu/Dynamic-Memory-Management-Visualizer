@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #fff3cd 0%, #ffda79 100%);
+    background: linear-gradient(135deg, #f0ae51 0%, #f37e2a 100%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -20,7 +20,7 @@ body.dark {
 }
 
 .container {
-    background: #ffeaa7;
+    background: #f5d364;
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
@@ -95,7 +95,7 @@ body.dark .input-group label {
 }
 
 .input-group input:focus, .input-group select:focus {
-    border-color: #e74c3c;
+    border-color: #eb402d;
     outline: none;
 }
 
@@ -112,7 +112,7 @@ body.dark .input-group input:focus, body.dark .input-group select:focus {
 
 button {
     padding: 10px 20px;
-    background: #e74c3c;
+    background: #f03723;
     color: white;
     border: none;
     border-radius: 8px;
@@ -125,7 +125,7 @@ button {
 }
 
 button:hover {
-    background: #c0392b;
+    background: #b92817;
     transform: translateY(-2px);
 }
 
@@ -259,7 +259,7 @@ th, td {
 }
 
 th {
-    background: #e74c3c;
+    background: #eb3e2a;
     color: white;
 }
 
