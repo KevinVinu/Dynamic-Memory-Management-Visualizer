@@ -41,7 +41,6 @@ function updateMode() {
         </tr>
     `;
 
-    // Clear previous state without full initialization
     physicalMemory = Array(totalFrames).fill(-1);
     pageFaults = 0;
     currentStep = 0;
@@ -112,11 +111,11 @@ function initializeMemory() {
         if (segmentInput) {
             segments = segmentInput.split(",").map(x => parseInt(x.trim())).filter(x => !isNaN(x));
             if (segments.length === 0 || segments.length > totalFrames) {
-                segments = [5, 3, 2]; // Default segments
+                segments = [5, 3, 2];
                 alert("Invalid segment sizes. Using default: 5,3,2.");
             }
         } else {
-            segments = [5, 3, 2]; // Default segments if input is empty
+            segments = [5, 3, 2];
             alert("No segment sizes provided. Using default: 5,3,2.");
         }
         segments.forEach((size, index) => {
@@ -149,7 +148,7 @@ function drawMemory() {
             segment.className = "frame";
             if (index < segments.length) {
                 const size = segments[index];
-                segment.style.width = `${Math.min(size * 20, 200)}px`; // Cap width for better display
+                segment.style.width = `${Math.min(size * 20, 200)}px`;
                 segment.textContent = physicalMemory[index] !== -1 ? `Seg ${index}` : "Empty";
                 segment.classList.add(physicalMemory[index] === -1 ? "empty" : "filled");
                 if (physicalMemory[index] !== -1) {
@@ -202,120 +201,123 @@ function updateDisk() {
     });
 }
 
-async function runFIFO() {
-    console.log("Starting runFIFO...");
+async function runSimulation() {
+    const algorithm = document.getElementById("algorithm").value;
+    console.log(`Starting simulation with ${algorithm.toUpperCase()}...`);
     const refString = document.getElementById("pageRefs").value;
-    console.log(`Reference string: ${refString}`);
     pageReferences = validateReferences(refString);
-    if (!pageReferences) {
-        console.log("Validation failed, exiting runFIFO");
-        return;
-    }
+    if (!pageReferences) return;
 
     pageFaults = 0;
-    let queue = [];
+    let queue = []; // For FIFO
+    let lruOrder = []; // For LRU
     history = [];
-    console.log(`Initial physicalMemory: ${physicalMemory}, queue: ${queue}, segmentTable: ${JSON.stringify(segmentTable)}`);
+    console.log(`Initial physicalMemory: ${physicalMemory}`);
 
-    try {
-        for (let ref of pageReferences) {
-            let action = "Hit";
-            let segment = null;
-            let offset = null;
-            let refDisplay = ref;
+    for (let ref of pageReferences) {
+        let action = "Hit";
+        let segment = null;
+        let offset = null;
+        let refDisplay = ref;
 
-            if (mode === "paging") {
-                const page = ref;
-                console.log(`Processing page ${page}, physicalMemory: ${physicalMemory}, queue: ${queue}`);
-                if (!physicalMemory.includes(page)) {
-                    pageFaults++;
-                    action = "Page Fault";
-                    if (!pageTable[page]) pageTable[page] = { frame: -1, inMemory: false };
-                    if (queue.length < totalFrames) {
-                        const frameIdx = physicalMemory.indexOf(-1);
-                        physicalMemory[frameIdx] = page;
-                        pageTable[page].frame = frameIdx;
-                        pageTable[page].inMemory = true;
-                        queue.push(page);
-                        console.log(`Loaded page ${page} into frame ${frameIdx}, queue: ${queue}`);
-                    } else {
-                        const oldPage = queue.shift();
-                        disk.push(oldPage);
-                        const frameIdx = physicalMemory.indexOf(oldPage);
-                        physicalMemory[frameIdx] = page;
-                        pageTable[oldPage].frame = -1;
-                        pageTable[oldPage].inMemory = false;
-                        pageTable[page].frame = frameIdx;
-                        pageTable[page].inMemory = true;
-                        queue.push(page);
-                        console.log(`Replaced page ${oldPage} with ${page} in frame ${frameIdx}, queue: ${queue}, disk: ${disk}`);
-                    }
-                } else {
-                    console.log(`Hit: page ${page} already in memory`);
+        if (mode === "paging") {
+            const page = ref;
+            if (!physicalMemory.includes(page)) {
+                pageFaults++;
+                action = "Page Fault";
+                if (!pageTable[page]) pageTable[page] = { frame: -1, inMemory: false };
+                if (queue.length < totalFrames) {
+                    const frameIdx = physicalMemory.indexOf(-1);
+                    physicalMemory[frameIdx] = page;
+                    pageTable[page].frame = frameIdx;
+                    pageTable[page].inMemory = true;
+                    queue.push(page);
+                    lruOrder.push(page);
+                } else if (algorithm === "fifo") {
+                    const oldPage = queue.shift();
+                    disk.push(oldPage);
+                    const frameIdx = physicalMemory.indexOf(oldPage);
+                    physicalMemory[frameIdx] = page;
+                    pageTable[oldPage].frame = -1;
+                    pageTable[oldPage].inMemory = false;
+                    pageTable[page].frame = frameIdx;
+                    pageTable[page].inMemory = true;
+                    queue.push(page);
+                    lruOrder.push(page);
+                } else { // LRU
+                    const lruPage = lruOrder.shift();
+                    disk.push(lruPage);
+                    const frameIdx = physicalMemory.indexOf(lruPage);
+                    physicalMemory[frameIdx] = page;
+                    pageTable[lruPage].frame = -1;
+                    pageTable[lruPage].inMemory = false;
+                    pageTable[page].frame = frameIdx;
+                    pageTable[page].inMemory = true;
+                    lruOrder.push(page);
                 }
-                refDisplay = page;
-            } else {
-                ({ segment, offset } = ref);
-                console.log(`Processing segment ${segment}, offset ${offset}, physicalMemory: ${physicalMemory}, queue: ${queue}`);
-                // Check for segment fault: either segment not in memory or offset too large
-                if (segment >= segments.length) {
-                    pageFaults++;
-                    action = "Segment Fault";
-                    console.log(`Segment fault: segment ${segment} is invalid (segments.length = ${segments.length})`);
-                } else if (offset > segments[segment] || physicalMemory[segment] === -1) {
-                    pageFaults++;
-                    action = "Segment Fault";
-                    if (offset > segments[segment]) {
-                        console.log(`Segment fault: offset ${offset} too large for segment ${segment} (size = ${segments[segment]})`);
-                    } else {
-                        console.log(`Segment fault: segment ${segment} not in memory`);
-                    }
-                    // Only load the segment into memory if the offset is valid
-                    if (offset <= segments[segment]) {
-                        if (queue.length < segments.length) {
-                            physicalMemory[segment] = segment;
-                            segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
-                            segmentTable[segment].inMemory = true;
-                            queue.push(segment);
-                            console.log(`Loaded segment ${segment} into memory at index ${segment}, base: ${segmentTable[segment].base}, queue: ${queue}`);
-                        } else {
-                            const oldSegment = queue.shift();
-                            disk.push(oldSegment);
-                            physicalMemory[oldSegment] = -1;
-                            segmentTable[oldSegment].base = -1;
-                            segmentTable[oldSegment].inMemory = false;
-                            console.log(`Evicted segment ${oldSegment}, disk: ${disk}`);
-                            physicalMemory[segment] = segment;
-                            segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
-                            segmentTable[segment].inMemory = true;
-                            queue.push(segment);
-                            console.log(`Loaded segment ${segment} into memory at index ${segment}, base: ${segmentTable[segment].base}, queue: ${queue}`);
-                        }
-                    }
-                } else {
-                    console.log(`Hit: segment ${segment} already in memory with valid offset`);
-                }
-                refDisplay = `${segment}:${offset}`;
+            } else if (algorithm === "lru") {
+                lruOrder = lruOrder.filter(p => p !== page); // Remove from current position
+                lruOrder.push(page); // Move to end (most recently used)
             }
-
-            console.log(`Adding to history: ref=${refDisplay}, action=${action}, faults=${pageFaults}`);
-            history.push({ ref: refDisplay, action, faults: pageFaults });
-            console.log(`History updated: ${JSON.stringify(history)}`);
-            drawMemory();
-            updateTable();
-            updateDisk();
-            updateHistory();
-            status.textContent = `Status: Faults: ${pageFaults}`;
-            await new Promise(resolve => setTimeout(resolve, 500));
+            refDisplay = page;
+        } else {
+            ({ segment, offset } = ref);
+            if (segment >= segments.length) {
+                pageFaults++;
+                action = "Segment Fault";
+            } else if (offset > segments[segment] || physicalMemory[segment] === -1) {
+                pageFaults++;
+                action = "Segment Fault";
+                if (offset <= segments[segment]) {
+                    if (queue.length < segments.length) {
+                        physicalMemory[segment] = segment;
+                        segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
+                        segmentTable[segment].inMemory = true;
+                        queue.push(segment);
+                        lruOrder.push(segment);
+                    } else if (algorithm === "fifo") {
+                        const oldSegment = queue.shift();
+                        disk.push(oldSegment);
+                        physicalMemory[oldSegment] = -1;
+                        segmentTable[oldSegment].base = -1;
+                        segmentTable[oldSegment].inMemory = false;
+                        physicalMemory[segment] = segment;
+                        segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
+                        segmentTable[segment].inMemory = true;
+                        queue.push(segment);
+                        lruOrder.push(segment);
+                    } else { // LRU
+                        const lruSegment = lruOrder.shift();
+                        disk.push(lruSegment);
+                        physicalMemory[lruSegment] = -1;
+                        segmentTable[lruSegment].base = -1;
+                        segmentTable[lruSegment].inMemory = false;
+                        physicalMemory[segment] = segment;
+                        segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
+                        segmentTable[segment].inMemory = true;
+                        lruOrder.push(segment);
+                    }
+                }
+            } else if (algorithm === "lru") {
+                lruOrder = lruOrder.filter(s => s !== segment);
+                lruOrder.push(segment);
+            }
+            refDisplay = `${segment}:${offset}`;
         }
-        alert(`Simulation complete!\nTotal Faults: ${pageFaults}`);
-    } catch (error) {
-        console.error("Error in runFIFO:", error);
-        alert("An error occurred during the simulation. Please check the console for details.");
+
+        history.push({ ref: refDisplay, action, faults: pageFaults });
+        drawMemory();
+        updateTable();
+        updateDisk();
+        updateHistory();
+        status.textContent = `Status: Faults: ${pageFaults}`;
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
+    alert(`Simulation complete with ${algorithm.toUpperCase()}!\nTotal Faults: ${pageFaults}`);
 }
 
 function stepThrough() {
+    const algorithm = document.getElementById("algorithm").value;
     const refString = document.getElementById("pageRefs").value;
     pageReferences = validateReferences(refString);
     if (!pageReferences) return;
@@ -326,6 +328,7 @@ function stepThrough() {
     }
 
     let queue = physicalMemory.filter(item => item !== -1);
+    let lruOrder = physicalMemory.filter(item => item !== -1);
     let ref = pageReferences[currentStep];
     let action = "Hit";
     let segment = null;
@@ -344,7 +347,8 @@ function stepThrough() {
                 pageTable[page].frame = frameIdx;
                 pageTable[page].inMemory = true;
                 queue.push(page);
-            } else {
+                lruOrder.push(page);
+            } else if (algorithm === "fifo") {
                 const oldPage = queue.shift();
                 disk.push(oldPage);
                 const frameIdx = physicalMemory.indexOf(oldPage);
@@ -354,7 +358,21 @@ function stepThrough() {
                 pageTable[page].frame = frameIdx;
                 pageTable[page].inMemory = true;
                 queue.push(page);
+                lruOrder.push(page);
+            } else { // LRU
+                const lruPage = lruOrder.shift();
+                disk.push(lruPage);
+                const frameIdx = physicalMemory.indexOf(lruPage);
+                physicalMemory[frameIdx] = page;
+                pageTable[lruPage].frame = -1;
+                pageTable[lruPage].inMemory = false;
+                pageTable[page].frame = frameIdx;
+                pageTable[page].inMemory = true;
+                lruOrder.push(page);
             }
+        } else if (algorithm === "lru") {
+            lruOrder = lruOrder.filter(p => p !== page);
+            lruOrder.push(page);
         }
         refDisplay = page;
     } else {
@@ -371,7 +389,8 @@ function stepThrough() {
                     segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
                     segmentTable[segment].inMemory = true;
                     queue.push(segment);
-                } else {
+                    lruOrder.push(segment);
+                } else if (algorithm === "fifo") {
                     const oldSegment = queue.shift();
                     disk.push(oldSegment);
                     physicalMemory[oldSegment] = -1;
@@ -381,8 +400,22 @@ function stepThrough() {
                     segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
                     segmentTable[segment].inMemory = true;
                     queue.push(segment);
+                    lruOrder.push(segment);
+                } else { // LRU
+                    const lruSegment = lruOrder.shift();
+                    disk.push(lruSegment);
+                    physicalMemory[lruSegment] = -1;
+                    segmentTable[lruSegment].base = -1;
+                    segmentTable[lruSegment].inMemory = false;
+                    physicalMemory[segment] = segment;
+                    segmentTable[segment].base = segments.slice(0, segment).reduce((sum, size) => sum + size, 0);
+                    segmentTable[segment].inMemory = true;
+                    lruOrder.push(segment);
                 }
             }
+        } else if (algorithm === "lru") {
+            lruOrder = lruOrder.filter(s => s !== segment);
+            lruOrder.push(segment);
         }
         refDisplay = `${segment}:${offset}`;
     }
@@ -432,5 +465,4 @@ function toggleTheme() {
     icon.classList.toggle("fa-sun");
 }
 
-// Initial setup
 updateMode();
