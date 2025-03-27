@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #fff3cd 25%, #ed7327 100%); /* Yellow gradient for light mode */
+    background: linear-gradient(135deg, #fff3cd 0%, #ffda79 100%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,11 +16,11 @@ body {
 }
 
 body.dark {
-    background: #000000; /* Solid black for dark mode */
+    background: #000000;
 }
 
 .container {
-    background: #ffeaa7; /* Light yellow for container in light mode */
+    background: #ffeaa7;
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
@@ -86,7 +86,7 @@ body.dark .input-group label {
     color: #e0e0e0;
 }
 
-.input-group input {
+.input-group input, .input-group select {
     padding: 10px;
     border: 2px solid #ddd;
     border-radius: 8px;
@@ -94,9 +94,13 @@ body.dark .input-group label {
     transition: border-color 0.3s;
 }
 
-.input-group input:focus {
-    border-color: #d43321; /* Red border on focus to match buttons */
+.input-group input:focus, .input-group select:focus {
+    border-color: #e74c3c;
     outline: none;
+}
+
+body.dark .input-group input:focus, body.dark .input-group select:focus {
+    border-color: #4CAF50;
 }
 
 .button-group {
@@ -108,7 +112,7 @@ body.dark .input-group label {
 
 button {
     padding: 10px 20px;
-    background: #eb2c17; /* Red buttons in light mode */
+    background: #e74c3c;
     color: white;
     border: none;
     border-radius: 8px;
@@ -121,7 +125,7 @@ button {
 }
 
 button:hover {
-    background: #bf2b1b; /* Darker red on hover */
+    background: #c0392b;
     transform: translateY(-2px);
 }
 
@@ -130,23 +134,22 @@ button:active {
 }
 
 body.dark button {
-    background: #4CAF50; /* Green buttons in dark mode */
+    background: #4CAF50;
 }
 
 body.dark button:hover {
-    background: #45a049; /* Darker green on hover in dark mode */
+    background: #45a049;
 }
 
 .memory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 15px;
     justify-content: center;
     margin-bottom: 30px;
 }
 
 .frame {
-    width: 80px;
     height: 50px;
     background: #e0e0e0;
     border: 2px solid #666;
@@ -158,17 +161,21 @@ body.dark button:hover {
     font-weight: bold;
     transition: all 0.5s ease;
     animation: fadeIn 0.5s ease;
+    box-sizing: border-box; /* Ensure padding/border are included in width */
+    min-width: 80px; /* Minimum width for consistency */
+    max-width: 200px; /* Maximum width for segments */
+    padding: 0 10px; /* Add padding for better text alignment */
 }
 
 .frame.filled {
-    background: linear-gradient(135deg, #e42e1a, #ff6b6b); /* Red gradient for filled frames in light mode */
+    background: linear-gradient(135deg, #e74c3c, #ff6b6b);
     color: white;
     transform: scale(1.05);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 body.dark .frame.filled {
-    background: linear-gradient(135deg, #4CAF50, #66bb6a); /* Green gradient for filled frames in dark mode */
+    background: linear-gradient(135deg, #4CAF50, #66bb6a);
 }
 
 .frame.empty {
@@ -184,6 +191,40 @@ body.dark .frame.filled {
 
 body.dark #status {
     color: #e0e0e0;
+}
+
+.virtual-memory {
+    margin-top: 20px;
+}
+
+.virtual-memory h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+body.dark .virtual-memory h3 {
+    color: #e0e0e0;
+}
+
+.disk-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.disk-page {
+    width: 60px;
+    height: 40px;
+    background: #e0e0e0;
+    border: 2px solid #666;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 .history {
@@ -218,12 +259,12 @@ th, td {
 }
 
 th {
-    background: #e93824; /* Red table header in light mode */
+    background: #e74c3c;
     color: white;
 }
 
 body.dark th {
-    background: #3d8b40; /* Green table header in dark mode */
+    background: #3d8b40;
 }
 
 td {
@@ -251,7 +292,7 @@ body.dark td {
         align-items: center;
     }
 
-    .input-group input {
+    .input-group input, .input-group select {
         width: 100%;
     }
 
@@ -264,13 +305,15 @@ body.dark td {
         width: 100%;
     }
 
-    .memory-grid {
-        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-    }
-
     .frame {
         width: 60px;
         height: 40px;
         font-size: 14px;
+    }
+
+    .disk-page {
+        width: 50px;
+        height: 30px;
+        font-size: 12px;
     }
 }
